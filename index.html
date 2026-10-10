@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enabling Agentic PCG with Harness-Controlled Local Models</title>
+<meta name="description" content="A harness that lets compact, locally deployed LLMs reliably design game levels through tools: action recovery, verified acceptance, feedback and early stopping.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#f6f6f3;
+    --surface:#ffffff;
+    --text:#22272e;
+    --text-secondary:#565e68;
+    --accent:#4b6f7c;
+    --accent-hover:#3d5c67;
+    --accent-soft:#e9eff1;
+    --amber:#a88a5a;
+    --border:#e1e1dc;
+    --panel:#efefeb;
+    --code-bg:#eef0ee;
+    --hero-bg:#454a50;
+    --hero-bg-top:#3d4147;
+    --hero-glow:rgba(190,196,200,0.10);
+    --hero-text:#f1efea;
+    --hero-muted:#c4c6c9;
+    --hero-strong:#ffffff;
+    --hero-abstract:#e0e1e2;
+    --hero-accent:#d6dbdc;
+    --btn-primary-bg:#f1efea;
+    --btn-primary-bg-hover:#ffffff;
+    --btn-primary-text:#33373d;
+    --btn-ghost-border:rgba(241,239,234,0.35);
+    --footer-bg:#3d4147;
+    --footer-text:#c4c6c9;
+    --num-muted:#a6abb0;
+    --bar-base:#c9ccc9;
+    --note:#6f767e;
+    --img-bg:var(--surface);
+    --section-gap:80px;
+    --container:900px;
+  }
+  html{scroll-behavior:smooth;overflow-x:clip}
+  body{
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+  }
+  code{font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;background:var(--code-bg);padding:1px 5px;border-radius:4px;color:var(--text)}
+
+  /* Container */
+  .container{max-width:var(--container);margin:0 auto;padding:0 24px}
+  .container.wide{max-width:1100px}
+
+  /* Hero */
+  .hero{
+    padding:72px 0 56px;text-align:center;color:var(--hero-text);
+    background:
+      radial-gradient(1100px 380px at 50% -10%, var(--hero-glow), transparent 70%),
+      linear-gradient(180deg,var(--hero-bg-top) 0%,var(--hero-bg) 100%);
+    margin-bottom:56px;
+  }
+  .hero .eyebrow{
+    display:inline-block;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;
+    color:var(--hero-accent);border:1px solid color-mix(in srgb, var(--hero-accent) 40%, transparent);border-radius:20px;padding:3px 12px;margin-bottom:18px;
+  }
+  .hero h1{
+    font-size:clamp(28px,4vw,42px);
+    font-weight:700;
+    letter-spacing:-0.02em;
+    line-height:1.2;
+    margin-bottom:20px;
+  }
+  .authors{
+    display:flex;flex-wrap:wrap;justify-content:center;
+    gap:6px 20px;margin-bottom:8px;font-size:15px;
+  }
+  .authors a{color:var(--hero-text);text-decoration:none;font-weight:500}
+  .authors a:hover{color:var(--hero-accent)}
+  .authors .superscript{font-size:10px;vertical-align:super;color:var(--hero-muted);margin-left:1px}
+  .affiliations{font-size:13px;color:var(--hero-muted);margin-bottom:28px;line-height:1.6}
+  .affiliations a{color:var(--hero-muted);text-decoration:none}
+  .affiliations a:hover{text-decoration:underline}
+
+  /* Buttons */
+  .btn-row{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-bottom:40px}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:10px 22px;border-radius:8px;
+    font-size:14px;font-weight:500;text-decoration:none;
+    transition:all 0.2s ease;
+  }
+  .btn-primary{background:var(--btn-primary-bg);color:var(--btn-primary-text)}
+  .btn-primary:hover{background:var(--btn-primary-bg-hover)}
+  .btn-ghost{background:transparent;color:var(--hero-text);border:1.5px solid var(--btn-ghost-border)}
+  .btn-ghost:hover{border-color:var(--hero-accent);color:var(--hero-accent)}
+  .btn svg{width:16px;height:16px;flex-shrink:0}
+
+  /* Abstract */
+  .abstract{
+    font-size:16px;color:var(--hero-abstract);line-height:1.8;
+    max-width:760px;margin:0 auto;text-align:left;
+  }
+
+  /* Media */
+  .hero-media{margin-bottom:var(--section-gap)}
+  .media-caption{
+    text-align:center;font-size:13px;color:var(--text-secondary);
+    margin-top:10px;font-style:italic;
+  }
+  .pixel{image-rendering:pixelated;image-rendering:crisp-edges}
+
+  /* Teaser grid */
+  .teaser-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  .teaser-grid .wide{grid-column:span 2}
+  .tile{margin:0}
+  .tile img{
+    width:100%;display:block;border-radius:8px;border:1px solid var(--border);
+    background:var(--panel);
+  }
+  .tile p{margin-bottom:0}
+  .tile .tile-title{font-size:13px;font-weight:600;margin-top:8px;color:var(--text)}
+  .tile .tile-sub{font-size:12px;color:var(--text-secondary);line-height:1.5}
+  .tile .tile-tag{
+    display:inline-block;font-size:11px;font-weight:600;color:var(--accent);
+    text-transform:uppercase;letter-spacing:0.06em;
+  }
+
+  /* Sections */
+  section{padding-bottom:var(--section-gap)}
+  section h2{
+    font-size:clamp(22px,3vw,30px);font-weight:700;
+    letter-spacing:-0.01em;margin-bottom:16px;
+  }
+  section h3{font-size:17px;font-weight:600;margin:8px 0 12px}
+  section p{font-size:15px;color:var(--text-secondary);line-height:1.8;margin-bottom:28px}
+  section p strong{color:var(--text);font-weight:600}
+  .section-label{
+    font-size:12px;font-weight:600;text-transform:uppercase;
+    letter-spacing:0.08em;color:var(--accent);margin-bottom:10px;
+    display:flex;align-items:center;gap:10px;
+  }
+  .section-label::before{content:"";width:22px;height:2px;background:var(--amber);border-radius:1px}
+
+  /* Failure / mechanism cards */
+  .card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:32px}
+  .card-grid.three{grid-template-columns:repeat(3,1fr)}
+  .card{
+    border:1px solid var(--border);border-radius:10px;background:var(--surface);
+    padding:18px 20px;
+  }
+  .card .card-title{font-size:14px;font-weight:600;margin-bottom:6px;color:var(--text)}
+  .card .card-body{font-size:13.5px;color:var(--text-secondary);line-height:1.65}
+  .card .card-num{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:22px;height:22px;border-radius:50%;
+    background:var(--accent);color:#fff;font-size:12px;font-weight:600;margin-right:8px;
+  }
+
+  /* Stat tiles */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:32px}
+  .stat{border:1px solid var(--border);border-radius:10px;padding:18px 20px;background:var(--surface)}
+  .stat .stat-model{font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em}
+  .stat .stat-value{font-size:30px;font-weight:700;letter-spacing:-0.02em;margin:4px 0 2px;color:var(--text);font-variant-numeric:tabular-nums}
+  .stat .stat-value .from{color:var(--num-muted);font-weight:500}
+  .stat .stat-value .arrow{color:var(--accent);font-weight:500;margin:0 6px}
+  .stat .stat-note{font-size:12.5px;color:var(--text-secondary);line-height:1.5}
+  .bar{height:6px;border-radius:3px;background:var(--panel);overflow:hidden;margin-top:10px;position:relative}
+  .bar span{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
+  .bar .b0{background:var(--bar-base)}
+  .bar .b1{background:var(--accent);opacity:0.85}
+
+  /* Tables */
+  .table-wrap{overflow-x:auto;margin-bottom:28px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:10px 16px;text-align:left;border-bottom:1px solid var(--border)}
+  th{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-secondary);background:var(--panel)}
+  tr:last-child td{border-bottom:none}
+  td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+  tr.hl td{background:var(--accent-soft)}
+
+  /* Comparison triple */
+  .triple{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:12px}
+  .triple .tile-sub b{color:var(--text);font-weight:600}
+  .ok{color:#15803d;font-weight:600}
+  .bad{color:#b91c1c;font-weight:600}
+
+  /* Carousel */
+  .carousel{position:relative;margin-bottom:28px;user-select:none}
+  .carousel-track{
+    position:relative;overflow:hidden;border-radius:10px;
+    border:1px solid var(--border);background:var(--panel);
+  }
+  .carousel-slide{display:none;width:100%}
+  .carousel-slide.active{display:block}
+  .carousel-slide .slide-media{position:relative;display:flex;justify-content:center;background:var(--panel)}
+  .carousel-slide .slide-media img{display:block;max-width:100%}
+  .carousel-slide .slide-media img.square{width:min(100%,460px)}
+  .carousel-slide .slide-media img.full{width:100%}
+  .carousel-slide .slide-label{
+    position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+    background:rgba(0,0,0,0.6);color:#fff;font-size:12px;font-weight:500;
+    padding:4px 14px;border-radius:20px;white-space:nowrap;pointer-events:none;
+  }
+  .carousel-btn{
+    position:absolute;top:50%;transform:translateY(-50%);
+    width:40px;height:40px;border-radius:50%;border:none;
+    background:rgba(255,255,255,0.9);box-shadow:0 2px 8px rgba(0,0,0,0.12);
+    cursor:pointer;display:flex;align-items:center;justify-content:center;
+    z-index:2;transition:all 0.2s ease;color:var(--text);font-size:18px;
+  }
+  .carousel-btn:hover{background:#fff;box-shadow:0 4px 16px rgba(0,0,0,0.16)}
+  .carousel-btn.prev{left:12px}
+  .carousel-btn.next{right:12px}
+  .carousel-dots{display:flex;justify-content:center;gap:8px;margin-top:12px}
+  .carousel-dot{
+    width:8px;height:8px;border-radius:50%;border:none;background:var(--border);
+    cursor:pointer;padding:0;transition:all 0.2s ease;
+  }
+  .carousel-dot.active{background:var(--accent);transform:scale(1.25)}
+
+  /* Animations */
+  .carousel-slide .slide-media.anim{background:#f9f8f5;padding:0}
+  .carousel-slide .slide-media.anim img,.carousel-slide .slide-media.anim video{width:auto;max-width:100%;height:auto;display:block}
+  .anim-figure > img{background:#f9f8f5;width:auto;max-width:100%;display:block;margin:0 auto}
+  .anim-figure.narrow{max-width:720px;margin-left:auto;margin-right:auto}
+  .bleed{width:min(1100px, calc(100vw - 32px));margin-left:calc(50% - min(550px, 50vw - 16px))}
+  .bleed-full{width:calc(100vw - 32px);margin-left:calc(50% - 50vw + 16px)}
+  .carousel-btn{opacity:0}
+  .carousel-track:hover .carousel-btn,.carousel:focus-within .carousel-btn{opacity:1}
+  @media (hover:none){.carousel-btn{opacity:0.85}}
+  .carousel-tabs{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:14px}
+  .carousel-tab{
+    font:inherit;font-size:12.5px;font-weight:500;color:var(--text-secondary);
+    background:var(--surface);border:1px solid var(--border);border-radius:20px;
+    padding:4px 14px;cursor:pointer;transition:all 0.2s ease;
+  }
+  .carousel-tab:hover{border-color:var(--accent);color:var(--accent)}
+  .carousel-tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  /* Slide text panel (prompt + outcome) */
+  .slide-text{
+    padding:20px 24px;background:var(--panel);border-top:1px solid var(--border);
+    font-size:13.5px;line-height:1.7;color:var(--text-secondary);
+  }
+  .slide-text strong{color:var(--text);font-weight:600}
+  .slide-text .slide-outcome{margin-top:14px}
+
+  /* Request list */
+  .requests{list-style:none;margin-bottom:28px;border:1px solid var(--border);border-radius:10px;background:var(--surface);overflow:hidden}
+  .requests li{display:flex;gap:14px;align-items:flex-start;padding:12px 16px;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--text-secondary);line-height:1.6}
+  .requests li:last-child{border-bottom:none}
+  .requests .chip{
+    flex-shrink:0;font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;
+    text-transform:uppercase;letter-spacing:0.04em;margin-top:2px;min-width:120px;text-align:center;
+  }
+  .chip.clarify{background:#fef3c7;color:#92400e}
+  .chip.unsupported{background:#fee2e2;color:#991b1b}
+
+  .section-link{color:var(--accent);text-decoration:none;font-weight:500}
+  .section-link:hover{text-decoration:underline}
+
+  /* Figure with caption */
+  figure{margin:0 0 28px}
+  figure > img{width:100%;border-radius:8px;border:1px solid var(--border);background:var(--img-bg)}
+  figcaption{text-align:center;font-size:13px;color:var(--text-secondary);margin-top:8px;line-height:1.5}
+
+  .note{font-size:13px !important;color:var(--note) !important;font-style:italic}
+
+  /* Scroll reveal */
+  .reveal{
+    opacity:0;transform:translateY(24px);
+    transition:opacity 0.7s cubic-bezier(.22,1,.36,1), transform 0.7s cubic-bezier(.22,1,.36,1);
+  }
+  .reveal.visible{opacity:1;transform:translateY(0)}
+
+  /* Footer */
+  footer{background:var(--footer-bg);color:var(--footer-text) !important;border-top:1px solid var(--border);padding:32px 0;text-align:center;font-size:13px;color:var(--text-secondary)}
+
+  /* Responsive */
+  @media(max-width:760px){
+    .teaser-grid{grid-template-columns:repeat(2,1fr)}
+    .card-grid,.card-grid.three,.stats{grid-template-columns:1fr}
+  }
+  @media(max-width:640px){
+    .hero{padding:48px 0 40px;margin-bottom:40px}
+    :root{--section-gap:56px}
+    .authors{flex-direction:column;gap:4px}
+    .teaser-grid{grid-template-columns:1fr 1fr;gap:12px}
+    .triple{grid-template-columns:1fr}
+    .requests li{flex-direction:column;gap:6px}
+    .carousel-btn{width:32px;height:32px;font-size:16px}
+  }
+
+  /* Lightbox */
+  .lightbox-overlay{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);
+    z-index:1000;cursor:zoom-out;justify-content:center;align-items:center;padding:24px;
+  }
+  .lightbox-overlay.active{display:flex}
+  .lightbox-overlay img{max-width:95vw;max-height:92vh;border-radius:8px;object-fit:contain;background:#fff}
+</style>
+</head>
+<body>
+
+<!-- Lightbox -->
+<div class="lightbox-overlay" id="lightbox">
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<!-- Hero -->
+<header class="hero">
+  <div class="container">
+    <span class="eyebrow">Agentic PCG with Local Models</span>
+    <h1>Enabling Agentic PCG with<br>Harness-Controlled Local Models</h1>
+
+    <div class="authors">
+      <span><a href="mailto:zehua.jiang@nyu.edu">Zehua Jiang</a><span class="superscript">1</span></span>
+      <span><a href="mailto:sam.e@basis.ai">Sam Earle</a><span class="superscript">2</span></span>
+      <span><a href="mailto:ahmed@akhalifa.com">Ahmed Khalifa</a><span class="superscript">3</span></span>
+      <span><a href="mailto:julian@togelius.com">Julian Togelius</a><span class="superscript">1</span></span>
+    </div>
+
+    <div class="affiliations">
+      <span><sup>1</sup> <a href="https://game.engineering.nyu.edu/">Game Innovation Lab, New York University</a></span>
+      &nbsp;&middot;&nbsp;
+      <span><sup>2</sup> Basis Research Institute</span>
+      &nbsp;&middot;&nbsp;
+      <span><sup>3</sup> <a href="https://www.um.edu.mt/digitalgames/">Institute of Digital Games, University of Malta</a></span>
+    </div>
+
+    <div class="btn-row">
+      <a class="btn btn-primary" href="https://ssrn.com/abstract=7502203" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Paper
+      </a>
+      <a class="btn btn-ghost" href="https://github.com/JiangZehua/Local-Deployable-AgenticPCG" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+        Code
+      </a>
+      <a class="btn btn-ghost" href="https://zehua-jiang.github.io/AgenticPCG/" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Agentic PCG (prior work)
+      </a>
+    </div>
+
+    <p class="abstract">
+      Large language models offer a natural-language interface to procedural content generation (PCG), letting designers request and revise levels through tools. Compact LLMs need less memory and compute, making them promising candidates for local, in-game PCG, yet reliable tool use and level revision remain hard for these models. We address this execution problem through <strong style="color:var(--hero-strong);font-weight:600">harness design</strong>: the harness constrains action formats, recovers unfinished responses through bounded follow-up calls, and evaluates candidate edits before deciding whether to save them. Feedback helps the model correct mistakes, while acceptance rules and early stopping retain successful edits. In a paired Zelda comparison using Qwen3.8-27B, the full harness raises the perfect-match rate from <strong style="color:var(--hero-strong);font-weight:600">9.38% (6/64) to 100% (64/64)</strong>, and the improvement holds for two other models; component studies show which parts of the harness drive it. The harness also helps preserve gameplay requirements during structural revision and supports natural-language control of gameplay events.
+    </p>
+  </div>
+</header>
+
+<!-- Hero visuals -->
+<div class="container wide">
+  <div class="hero-media">
+    <div class="carousel tabbed" data-carousel data-autoplay="3000">
+      <div class="carousel-track">
+        <div class="carousel-slide active" data-label="Zelda · exact paths">
+          <div class="slide-media anim"><video data-fs="20" src="assets/anim/harness_vs_openloop_pk40-kd32.mp4" data-gif="assets/anim/harness_vs_openloop_pk40-kd32.gif" aria-label="Zelda · exact paths" class="pixel zoomable" muted playsinline preload="auto"></video></div>
+          <div class="slide-text"><strong>Target matching.</strong> Same model, same request: the open-loop baseline never emits an executable action, while the harness recovers it and hits player&rarr;key = 40 and key&rarr;door = 32 exactly.</div>
+        </div>
+        <div class="carousel-slide" data-label="Zelda · cave">
+          <div class="slide-media anim"><video data-fs="20" src="assets/anim/structural_tools_smooth-p1.mp4" data-gif="assets/anim/structural_tools_smooth-p1.gif" aria-label="Zelda · cave" class="pixel zoomable" muted playsinline preload="metadata"></video></div>
+          <div class="slide-text"><strong>PCG tools in the loop.</strong> Noise &rarr; smooth &rarr; connect: the model builds a cave with cellular automata and connectivity repair while keeping every entity reachable.</div>
+        </div>
+        <div class="carousel-slide" data-label="BinaryDoor · door to door">
+          <div class="slide-media anim"><video data-fs="20" src="assets/anim/binarydoor_bd-new-medium-05.mp4" data-gif="assets/anim/binarydoor_bd-new-medium-05.gif" aria-label="BinaryDoor · door to door" class="pixel zoomable" muted playsinline preload="metadata"></video></div>
+          <div class="slide-text"><strong>Target matching.</strong> A single door-to-door path of exactly 44 steps in one connected region.</div>
+        </div>
+        <div class="carousel-slide" data-label="Zelda · rooms">
+          <div class="slide-media anim"><video data-fs="20" src="assets/anim/structural_tools_rooms-p2.mp4" data-gif="assets/anim/structural_tools_rooms-p2.gif" aria-label="Zelda · rooms" class="pixel zoomable" muted playsinline preload="metadata"></video></div>
+          <div class="slide-text"><strong>PCG tools in the loop.</strong> Revising an existing level into box-shaped rooms: tile edits alone vs. high-level PCG tools, both under the full harness.</div>
+        </div>
+        <div class="carousel-slide" data-label="SMB · object counts">
+          <div class="slide-media anim"><video data-fs="24" src="assets/anim/smb_static-en-10-v2.mp4" data-gif="assets/anim/smb_static-en-10-v2.gif" aria-label="SMB · object counts" class="pixel zoomable" muted playsinline preload="metadata"></video></div>
+          <div class="slide-text"><strong>Natural language &rarr; level objects.</strong> &ldquo;Place exactly 4 pipes, 6 enemy tiles, 5 coin tiles and 32 block tiles.&rdquo; All counts match, and the A* player completes the level collecting all 5 coins.</div>
+        </div>
+        <div class="carousel-slide" data-label="SMB · gameplay events">
+          <div class="slide-media anim"><video data-fs="32" src="assets/anim/smb_natural-en-01.mp4" data-gif="assets/anim/smb_natural-en-01.gif" aria-label="SMB · gameplay events" class="pixel zoomable" muted playsinline preload="metadata"></video></div>
+          <div class="slide-text"><strong>Natural language &rarr; gameplay events.</strong> &ldquo;Mario can leave every enemy alone, but before the flag he should pocket five coins and make three deliberate jumps from the ground.&rdquo; The model extracts the target, a builder stitches simulation-certified patches into a 16&times;48 level, and the A* player verifies 5 coins, 0 stomps, 3 ground jumps.</div>
+        </div>
+        <button class="carousel-btn prev" aria-label="Previous">&#8249;</button>
+        <button class="carousel-btn next" aria-label="Next">&#8250;</button>
+      </div>
+      <div class="carousel-dots"></div>
+    </div>
+    <p class="media-caption">Every animation replays a recorded episode with a locally deployed Qwen3.8-27B. Red tiles mark edits from the latest tool call.</p>
+  </div>
+</div>
+
+<!-- Section: Motivation -->
+<section>
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">Motivation</p>
+      <h2>Why Local Models Need a Harness</h2>
+      <p>
+        A designer may ask a PCG system to create connected rooms, lengthen a route, or build a platforming level with a particular number of jumps. Developers may want this to run offline, on a model version they control, with design requests and player data kept on their own machines. Inside a game, the model also has to share memory and compute with rendering and simulation, so it needs to be small enough to run locally. <strong>Compact local models</strong> meet these requirements, but a model that can describe a level design cannot necessarily <em>execute</em> it. In our experience, they often fail in four ways:
+      </p>
+    </div>
+    <div class="card-grid reveal">
+      <div class="card">
+        <p class="card-title">Invalid actions</p>
+        <p class="card-body">The model proposes coordinates outside the map or malformed tool arguments.</p>
+      </div>
+      <div class="card">
+        <p class="card-title">Truncated responses</p>
+        <p class="card-body">Lengthy reasoning exhausts the output budget before a complete tool call is emitted.</p>
+      </div>
+      <div class="card">
+        <p class="card-title">Missed targets</p>
+        <p class="card-body">An edit runs without errors, yet the resulting level still misses the requested target.</p>
+      </div>
+      <div class="card">
+        <p class="card-title">Lost progress</p>
+        <p class="card-body">A later edit overwrites a level that was already useful, throwing away earlier progress.</p>
+      </div>
+    </div>
+    <div class="reveal">
+      <p>
+        Fine-tuning or distillation could address this, but needs extra data and compute. We instead change <strong>how model actions are executed and how level updates are accepted</strong>&mdash;no model weights are changed. This work extends the tool-using <a class="section-link" href="https://zehua-jiang.github.io/AgenticPCG/" target="_blank">Agentic PCG</a> framework.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- Section: Harness -->
+<section id="harness">
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">Method</p>
+      <h2>The Execution Harness</h2>
+      <p>
+        The local model plans and emits tool calls. Everything after that is owned by the harness: it validates the calls, runs them on a <em>copy</em> of the saved level, measures the candidate, and decides whether to keep it. Measuring a candidate never automatically overwrites the saved level.
+      </p>
+    </div>
+
+    <figure class="reveal">
+      <img src="assets/figures/harness.png" alt="Harness workflow: local model, check actions, execute tools, evaluate, manage state, return result" class="zoomable">
+      <figcaption>Gray dashed arrows show bounded action recovery and the feedback loop; the amber branch shows optional early stopping once the saved level meets the target.</figcaption>
+    </figure>
+
+    <div class="card-grid reveal">
+      <div class="card">
+        <p class="card-title"><span class="card-num">1</span>Constrain and recover actions</p>
+        <p class="card-body">A domain-aware action format bounds tool names, tile types and coordinates. If a reasoning response ends without a complete action, one follow-up call&mdash;with thinking disabled and a length-limited copy of the draft&mdash;asks for executable actions. Recovery never adds editing steps.</p>
+      </div>
+      <div class="card">
+        <p class="card-title"><span class="card-num">2</span>Evaluate before committing</p>
+        <p class="card-body">Each candidate <code>L&prime; = Exec(L, a)</code> is measured, then accepted or rejected. For exact targets, candidates are ranked first by validity, then by target error, and only then by edit cost&mdash;so a correct level is never discarded for changing many tiles.</p>
+      </div>
+      <div class="card">
+        <p class="card-title"><span class="card-num">3</span>Feedback and history</p>
+        <p class="card-body">The model sees executed actions, errors, measured path lengths, the remaining target error, and <em>why</em> an edit was kept or discarded. Even a rejected edit tells the model which mistake to avoid.</p>
+      </div>
+      <div class="card">
+        <p class="card-title"><span class="card-num">4</span>Stop when done</p>
+        <p class="card-body">Execution stops as soon as the saved level meets the target and passes the validity checks&mdash;protecting the result and saving inference. Running out of budget with an inexact level still counts as failure.</p>
+      </div>
+    </div>
+
+    <div class="reveal">
+      <h3>Two execution modes</h3>
+      <p>
+        <strong>Iterative editing:</strong> the model calls primitive tile edits or <strong>high-level PCG tools</strong>&mdash;a room generator, a depth-first cave digger, cellular automata and connectivity repair&mdash;through the same checked loop.
+        <strong>Target extraction + construction:</strong> the model reads a natural-language request and fills structured target fields. The harness checks them for missing, ambiguous or unsupported requirements; a deterministic builder then joins short, ceiling-free level patches that were certified in simulation, so their event counts add up to the target, and an A* player verifies the result.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- Section: Results -->
+<section id="results">
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">Reliable Level Editing</p>
+      <h2>From 6/64 to 64/64 Perfect Matches</h2>
+      <p>
+        Each model is held fixed and evaluated on the same 64 Zelda targets: two requested path lengths (player&rarr;key and key&rarr;door, each 10&ndash;40 steps) on a 16&times;16 map, with one player, key, door, three enemies, and one connected region. An open-loop baseline saves every executable edit with no feedback or history; the full harness adds recovery, measured feedback, history, target-prioritized acceptance, path guidance and early stopping. A run is a <strong>perfect match</strong> only if the final saved map is valid, hits both path lengths exactly, and the episode has no unrecovered parsing or tool errors.
+      </p>
+    </div>
+
+    <div class="stats reveal">
+      <div class="stat">
+        <p class="stat-model">Qwen3.8-27B</p>
+        <p class="stat-value"><span class="from">6</span><span class="arrow">&rarr;</span>64<span style="font-size:16px;color:#999;font-weight:500"> /64</span></p>
+        <p class="stat-note">9.38% &rarr; 100%. +58 targets, no regressions. 95% CI for the gain: 82.8&ndash;96.9 pp.</p>
+        <div class="bar"><span class="b1" style="width:100%"></span><span class="b0" style="width:9.38%"></span></div>
+      </div>
+      <div class="stat">
+        <p class="stat-model">Gemma 4 31B IT</p>
+        <p class="stat-value"><span class="from">1</span><span class="arrow">&rarr;</span>59<span style="font-size:16px;color:#999;font-weight:500"> /64</span></p>
+        <p class="stat-note">1.56% &rarr; 92.19%. +58 targets, no regressions. 95% CI: 82.8&ndash;96.9 pp.</p>
+        <div class="bar"><span class="b1" style="width:92.19%"></span><span class="b0" style="width:1.56%"></span></div>
+      </div>
+      <div class="stat">
+        <p class="stat-model">Qwen3.6-35B-A3B</p>
+        <p class="stat-value"><span class="from">2</span><span class="arrow">&rarr;</span>32<span style="font-size:16px;color:#999;font-weight:500"> /64</span></p>
+        <p class="stat-note">3.13% &rarr; 50%. +30 targets, no regressions. 95% CI: 34.4&ndash;59.4 pp.</p>
+        <div class="bar"><span class="b1" style="width:50%"></span><span class="b0" style="width:3.13%"></span></div>
+      </div>
+    </div>
+
+    <div class="reveal"><h3>Same target, three models</h3></div>
+    <figure class="reveal anim-figure bleed-full">
+      <img src="assets/anim/models_all_pk25-kd38.gif" alt="Open-loop vs full harness for three local models" class="pixel zoomable" loading="lazy">
+    </figure>
+
+    <figure class="reveal">
+      <img src="assets/figures/fig7_harness_package.png" alt="Full harness comparison and cumulative component additions" class="zoomable">
+      <figcaption>(a) Open-loop vs. full harness for three models. (b&ndash;c) Adding components cumulatively for Qwen3.8: perfect matches, valid runs, total LLM calls and mean target error e<sub>&infin;</sub>.</figcaption>
+    </figure>
+
+    <div class="reveal">
+      <h3>What makes the difference?</h3>
+      <p>
+        Action recovery makes more responses executable, but <strong>keeping successful edits gives the largest jump</strong>: adding acceptance and early stopping raises perfect matches from 13/64 to 56/64&mdash;before the model sees any evaluator feedback. Feedback, history and path guidance then fix the remaining errors and bring the result to 64/64. A separate 2&times;2 comparison shows that either selective acceptance (56/64) or early stopping (59/64) alone is enough to protect successful results, versus 13/64 with neither.
+      </p>
+    </div>
+    <div class="reveal">
+      <p>
+        The harness is also <strong>cheaper</strong>: on the 64 targets it cuts Qwen3.8&rsquo;s model calls from 256 to 120 and output tokens from 1.80M to 0.42M. On a larger reserved set of <strong>721 Zelda targets</strong>, the fixed system reaches 99.03% (714/721) perfect matches and 99.86% valid runs, recovering 658 of 659 truncated responses. In a second domain, BinaryDoor, it reaches 20/32 perfect matches where the open-loop baseline solves none.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- Section: Structural revision -->
+<section id="tools">
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">High-Level PCG Tools</p>
+      <h2>Revising Levels Without Breaking Them</h2>
+      <p>
+        We ask the model to restructure existing 32&times;32 Zelda levels&mdash;add rooms, caves, mazes, repeating patterns, or reconnect islands&mdash;while keeping every entity and route intact. Six request types with three paraphrases each give 18 requests, scored by functional validity plus predefined geometric checks.
+      </p>
+    </div>
+
+    <div class="table-wrap reveal">
+      <table>
+        <thead><tr><th>Condition</th><th>Valid levels</th><th>Structural success</th><th>Tool calls</th></tr></thead>
+        <tbody>
+          <tr><td>Tile edits, full loop</td><td class="num">100% (18/18)</td><td class="num">33.33% (6/18)</td><td class="num">978</td></tr>
+          <tr class="hl"><td><strong>High-level PCG tools, full loop</strong></td><td class="num"><strong>100% (18/18)</strong></td><td class="num"><strong>77.78% (14/18)</strong></td><td class="num">536</td></tr>
+          <tr><td>High-level PCG tools, ablated loop</td><td class="num">66.67% (12/18)</td><td class="num">66.67% (12/18)</td><td class="num">288</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="reveal">
+      <p>
+        High-level tools let the agent express a large structural change in a single call, with 45% fewer tool calls. The execution loop is what keeps the level playable: removing history, numerical feedback and acceptance control leaves six of the 15 initially valid maps broken, including all three dense-maze requests. This protection has a cost&mdash;about 850k tokens for the full loop versus 384k for the ablation.
+      </p>
+      <h3>Same request, with and without the loop</h3>
+    </div>
+    <figure class="reveal anim-figure bleed">
+      <img src="assets/anim/structural_harness_maze-p2.gif" alt="Full vs ablated harness on the dense-maze request" class="pixel zoomable" loading="lazy">
+      <figcaption>The full harness rejects every edit that would overwrite the player, key, door or enemies and rolls back; the ablated loop applies each edit as is and ends with a regular maze but no entities.</figcaption>
+    </figure>
+
+    <div class="reveal"><h3>Tile edits vs. high-level PCG tools</h3></div>
+    <div class="carousel tabbed reveal bleed" data-carousel>
+      <div class="carousel-track">
+        <div class="carousel-slide active" data-label="Many rooms">
+          <div class="slide-media anim"><img src="assets/anim/structural_tools_rooms-p2.gif" alt="Many rooms" class="pixel zoomable" loading="lazy"></div>
+        </div>
+        <div class="carousel-slide" data-label="Organic cave">
+          <div class="slide-media anim"><img src="assets/anim/structural_tools_organic-p1.gif" alt="Organic cave" class="pixel zoomable" loading="lazy"></div>
+        </div>
+        <div class="carousel-slide" data-label="Smoothed cave">
+          <div class="slide-media anim"><img src="assets/anim/structural_tools_smooth-p1.gif" alt="Smoothed cave" class="pixel zoomable" loading="lazy"></div>
+        </div>
+        <div class="carousel-slide" data-label="Repeating pattern">
+          <div class="slide-media anim"><img src="assets/anim/structural_tools_pattern-p2.gif" alt="Repeating pattern" class="pixel zoomable" loading="lazy"></div>
+        </div>
+        <div class="carousel-slide" data-label="Reconnect regions">
+          <div class="slide-media anim"><img src="assets/anim/structural_tools_reconnect-p2.gif" alt="Reconnect regions" class="pixel zoomable" loading="lazy"></div>
+        </div>
+        <div class="carousel-slide" data-label="Dense maze">
+          <div class="slide-media anim"><img src="assets/anim/structural_tools_maze-p2.gif" alt="Dense maze" class="pixel zoomable" loading="lazy"></div>
+        </div>
+        <button class="carousel-btn prev" aria-label="Previous">&#8249;</button>
+        <button class="carousel-btn next" aria-label="Next">&#8250;</button>
+      </div>
+      <div class="carousel-dots"></div>
+    </div>
+    <figcaption class="reveal" style="margin-top:-16px; margin-bottom:28px">Both columns run the full harness on the same initial map and seeds; only the available tools differ. Across 18 requests, structural success is 6/18 with tile edits and 14/18 with high-level PCG tools.</figcaption>
+  </div>
+</section>
+
+<!-- Section: Language control -->
+<section id="language">
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">Language Control</p>
+      <h2>From Requests to Verified Gameplay in Super Mario Bros.</h2>
+      <p>
+        In SMB, the model reads a request and extracts structured targets; the harness rejects incomplete, ambiguous or unsupported targets <em>before</em> anything runs. A deterministic builder then joins short level patches that were certified in simulation, and an A* player verifies what actually happens. We distinguish <strong>level-object targets</strong> (what the map contains: pipes, enemies, coins, blocks) from <strong>gameplay-event targets</strong> (what happens during play: coins collected, enemies stomped, jumps from the ground).
+      </p>
+    </div>
+
+    <div class="carousel tabbed reveal bleed" data-carousel>
+      <div class="carousel-track">
+        <div class="carousel-slide active" data-label="Gameplay events">
+          <div class="slide-media anim"><img src="assets/anim/smb_natural-en-08.gif" alt="Gameplay-event target: 5 coins, 3 stomps, 1 jump" class="pixel zoomable" loading="lazy"></div>
+          <div class="slide-text"><strong>What happens during play.</strong> The builder stitches certified patches whose event counts sum to the target (Phase 1); the A* player then plays the level with live coin / stomp / jump counters (Phase 2). Stomp bounces do not count as jumps, and enemies falling into pits do not count as stomps.</div>
+        </div>
+        <div class="carousel-slide" data-label="Object counts">
+          <div class="slide-media anim"><img src="assets/anim/smb_static-en-10-v2.gif" alt="Level-object target: 4 pipes, 6 enemies, 5 coins, 32 blocks" class="pixel zoomable" loading="lazy"></div>
+          <div class="slide-text"><strong>What the map contains.</strong> A constructive builder places exact numbers of pipes, enemies, blocks and coins, putting coins only on cells the A* player visits; the A* run then confirms the level is playable.</div>
+        </div>
+        <button class="carousel-btn prev" aria-label="Previous">&#8249;</button>
+        <button class="carousel-btn next" aria-label="Next">&#8250;</button>
+      </div>
+      <div class="carousel-dots"></div>
+    </div>
+
+    <div class="reveal">
+      <h3>Simulation-certified patches</h3>
+      <p>
+        Each candidate patch&mdash;enemies behind pits, an obstacle or gap, a row of coins&mdash;is played in two to four fixed contexts and kept only if every playthrough reproduces its event counts exactly, with no ceilings and no uncounted takeoffs. Of 496 candidate placements, 67 pass. Stitching them, the builder satisfies <strong>204 of the 210</strong> supported structured targets (up to four stomps, five coins and six jumps), 196 with its first plan and all within nine simulation runs. The six remaining targets request neither stomps nor jumps, which a ceiling-free level cannot produce. An earlier library of 16 whole-level layouts covered only 96 targets, and primitive tile editing satisfies only 3 of 29 development targets even though all its levels are playable.
+      </p>
+    </div>
+    <figure class="reveal anim-figure bleed">
+      <img src="assets/anim/smb_patch_library.png" alt="The certified SMB patch library" class="zoomable" loading="lazy">
+      <figcaption>The certified patch library by role: stomp clusters, jumps, exits, coin rows and run-up floors.</figcaption>
+    </figure>
+
+    <div class="reveal">
+      <h3>From language to a verified level</h3>
+      <p>
+        On 24 valid requests in English, Chinese and mixed language, the model extracts every target field correctly for <strong>23/24</strong>, and the builder satisfies all 23. Given correct targets, the builder succeeds on all 24, so the remaining error is interpretation; a keyword parser attached to the same builder succeeds on only 12. In the one failure the model left out explicit zero-event requirements&mdash;and the harness rejected the incomplete target rather than building the wrong level.
+      </p>
+    </div>
+
+    <div class="reveal">
+      <h3>Knowing when not to build</h3>
+      <p>All eight ambiguous or unsupported requests are rejected before execution, for example:</p>
+      <ul class="requests">
+        <li><span class="chip clarify">Needs clarification</span><span>&ldquo;Let Mario grab a few coins, beat some enemies, and jump whenever it feels natural.&rdquo;</span></li>
+        <li><span class="chip clarify">Needs clarification</span><span>&ldquo;The final run must collect exactly two coins, but it must also finish with exactly four collected coins.&rdquo;</span></li>
+        <li><span class="chip unsupported">Unsupported</span><span>&ldquo;During one run, defeat eight enemies, collect one coin, and make two ground jumps.&rdquo;</span></li>
+        <li><span class="chip unsupported">Unsupported</span><span>&ldquo;Build a Zelda dungeon where the hero finds two keys before opening a locked door.&rdquo;</span></li>
+        <li><span class="chip clarify">Needs clarification</span><span>&ldquo;Put three coin tiles in the file and have Mario collect two coins; use whichever count is more convenient.&rdquo;</span></li>
+      </ul>
+      <p class="note">
+        Limits: target extraction can only enforce what the target representation captures. On 12 Zelda scene descriptions involving shapes, guard rows, vaults and relative placement, the full system stays functionally valid in 12/12 cases but meets every scene detail in only 1/12. Broader language control needs richer target representations and evaluators.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- Section: Laptop -->
+<section id="deployment">
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">Deployment</p>
+      <h2>Running on a Laptop</h2>
+      <p>
+        We reran the main studies with Qwen3.8-27B quantized to Q4_K_M in LM Studio on an <strong>M1 Max MacBook Pro with 32&nbsp;GiB</strong> of unified memory. The completed-output results closely match the BF16 server runs.
+      </p>
+    </div>
+    <div class="table-wrap reveal">
+      <table>
+        <thead><tr><th>Study</th><th>BF16 server</th><th>Laptop (Q4_K_M)</th></tr></thead>
+        <tbody>
+          <tr><td>Zelda paired targets, perfect match</td><td class="num">100% (64/64)</td><td class="num">100% (64/64)</td></tr>
+          <tr><td>SMB language requests, success</td><td class="num">95.83% (23/24)</td><td class="num">91.67% (22/24)</td></tr>
+          <tr><td>Ambiguous / unsupported requests rejected</td><td class="num">8/8</td><td class="num">8/8</td></tr>
+          <tr><td>Structural revision, tile edits &rarr; high-level tools</td><td class="num">6/18 &rarr; 14/18</td><td class="num">5/18 &rarr; 15/18</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="reveal">
+      <p class="note">Successful Zelda episodes average 878 s on the laptop, so these results support portability, not real-time in-game generation. The laptop baseline was not rerun and the comparison does not isolate quantization effects. Laptop SMB levels were built with the earlier layout library; rebuilding the 22 correctly extracted targets with the patch-stitching builder succeeds in every case.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Section: Code -->
+<section id="code">
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">Code</p>
+      <h2>Try It Yourself</h2>
+      <p>
+        <a class="section-link" href="https://github.com/JiangZehua/Local-Deployable-AgenticPCG" target="_blank">Local-Deployable-AgenticPCG</a> is self-contained: it bundles the six-domain PCG framework (Binary, BinaryDoor, Zelda, Sokoban, Lode Runner, SMB), the harness controls, fixed benchmark inputs, experiment runners and evaluators. The offline smoke test needs neither a GPU nor model weights.
+      </p>
+      <pre style="background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:20px;overflow-x:auto;font-size:14px;line-height:1.6;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;color:var(--text);margin-bottom:28px"><code style="background:none;padding:0"># Python 3.12, macOS or Linux
+python3.12 -m venv .venv && source .venv/bin/activate
+python -m pip install -r requirements/client-lock.txt
+python -m pip install -e ".[test]"
+
+pcg-reproduce smoke --output runs/smoke          # offline example
+pcg-reproduce z64 --model qwen38 --dry-run       # inspect the paired 64-target study</code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- BibTeX -->
+<section>
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">Citation</p>
+      <h2>BibTeX</h2>
+      <p>If you find this work useful in your project/research, please consider citing our preprint:</p>
+      <pre style="background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:20px;overflow-x:auto;font-size:14px;line-height:1.6;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;color:var(--text);position:relative"><code style="background:none;padding:0">@article{jiang2026enabling,
+  title   = {Enabling Agentic PCG with Harness-Controlled Local Models},
+  author  = {Jiang, Zehua and Earle, Sam and Khalifa, Ahmed and Togelius, Julian},
+  journal = {Available at SSRN 7502203},
+  year    = {2026},
+  month   = sep,
+  doi     = {10.2139/ssrn.7502203},
+  url     = {https://ssrn.com/abstract=7502203},
+  note    = {Available at SSRN: \url{https://ssrn.com/abstract=7502203}}
+}
+
+@article{jiang2026agentic,
+  title   = {Agentic PCG: Procedural Content Generation via Tool-using LLMs},
+  author  = {Jiang, Zehua and Earle, Sam and Khalifa, Ahmed and Togelius, Julian},
+  journal = {Available at SSRN 6499021},
+  year    = {2026},
+  note    = {Available at SSRN: \url{https://ssrn.com/abstract=6499021}}
+}</code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <div style="display:flex;justify-content:center;gap:20px;margin-bottom:20px">
+      <a href="mailto:zehua.jiang@nyu.edu" title="Email" style="color:var(--footer-text);transition:color 0.2s"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></a>
+      <a href="https://x.com/jzh_000" target="_blank" title="X / Twitter" style="color:var(--footer-text);transition:color 0.2s"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+      <a href="https://github.com/JiangZehua/Local-Deployable-AgenticPCG" target="_blank" title="GitHub" style="color:var(--footer-text);transition:color 0.2s"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg></a>
+    </div>
+    <p>&copy; Local-Deployable AgenticPCG &middot; New York University &middot; 2026</p>
+  </div>
+</footer>
+
+<script>
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) entry.target.classList.add('visible');
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// Carousels
+document.querySelectorAll('[data-carousel]').forEach(carousel => {
+  const slides = carousel.querySelectorAll('.carousel-slide');
+  const dotsContainer = carousel.querySelector('.carousel-dots');
+  const prevBtn = carousel.querySelector('.carousel-btn.prev');
+  const nextBtn = carousel.querySelector('.carousel-btn.next');
+  let current = 0;
+
+  const tabbed = carousel.classList.contains('tabbed');
+  if (tabbed) dotsContainer.className = 'carousel-tabs';
+  slides.forEach((slide, i) => {
+    const dot = document.createElement('button');
+    if (tabbed) {
+      dot.className = 'carousel-tab' + (i === 0 ? ' active' : '');
+      dot.textContent = slide.dataset.label || ('Slide ' + (i + 1));
+    } else {
+      dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+      dot.setAttribute('aria-label', 'Slide ' + (i + 1));
+    }
+    dot.addEventListener('click', () => goTo(i));
+    dotsContainer.appendChild(dot);
+  });
+
+  if (slides.length < 2) {
+    if (prevBtn) prevBtn.style.display = 'none';
+    if (nextBtn) nextBtn.style.display = 'none';
+  }
+
+  // Keep the arrows centred on the image, not on image + text panel
+  function placeButtons() {
+    const media = slides[current].querySelector('.slide-media');
+    if (!media) return;
+    const top = media.offsetHeight / 2;
+    [prevBtn, nextBtn].forEach(b => { if (b) b.style.top = top + 'px'; });
+  }
+
+  // Autoplay (videos): play the active clip from the start; when it ends,
+  // wait `data-autoplay` ms and advance. Runs only while the carousel is on screen.
+  const pauseMs = parseInt(carousel.dataset.autoplay || '0', 10);
+  let timer = null, onScreen = false;
+  const videoOf = i => slides[i].querySelector('video');
+  function playCurrent() {
+    clearTimeout(timer);
+    slides.forEach((_, i) => { const v = videoOf(i); if (v && i !== current) v.pause(); });
+    const v = videoOf(current);
+    if (!v || !onScreen) return;
+    v.preload = 'auto';
+    try { v.currentTime = 0; } catch (e) {}
+    const p = v.play();
+    if (p && p.catch) p.catch(() => { timer = setTimeout(() => goTo(current + 1), 8000); });
+  }
+  if (pauseMs) {
+    slides.forEach((_, i) => {
+      const v = videoOf(i);
+      if (v) v.addEventListener('ended', () => {
+        if (i === current) timer = setTimeout(() => goTo(current + 1), pauseMs);
+      });
+    });
+    new IntersectionObserver(entries => {
+      onScreen = entries[0].isIntersecting;
+      if (onScreen) playCurrent();
+      else { clearTimeout(timer); const v = videoOf(current); if (v) v.pause(); }
+    }, { threshold: 0.35 }).observe(carousel);
+  }
+
+  function goTo(index) {
+    slides[current].classList.remove('active');
+    dotsContainer.children[current].classList.remove('active');
+    current = (index + slides.length) % slides.length;
+    slides[current].classList.add('active');
+    dotsContainer.children[current].classList.add('active');
+    if (typeof sizeOpeningClips === 'function') sizeOpeningClips();
+    placeButtons();
+    if (pauseMs) playCurrent();
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', () => goTo(current - 1));
+  if (nextBtn) nextBtn.addEventListener('click', () => goTo(current + 1));
+
+  carousel.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') goTo(current - 1);
+    if (e.key === 'ArrowRight') goTo(current + 1);
+  });
+  carousel.setAttribute('tabindex', '0');
+  carousel.querySelectorAll('img').forEach(img => img.addEventListener('load', placeButtons));
+  carousel.querySelectorAll('video').forEach(v => v.addEventListener('loadedmetadata', placeButtons));
+  window.addEventListener('resize', placeButtons);
+  placeButtons();
+});
+
+// Opening carousel: shrink each clip to fit the screen height, but never so far
+// that its smallest in-animation text (render font size − 4) drops below the
+// 13px page captions.
+const CAPTION_PX = 13;
+function sizeOpeningClips() {
+  document.querySelectorAll('[data-autoplay] video[data-fs]').forEach(v => {
+    if (!v.videoWidth) return;
+    const box = v.closest('.slide-media');
+    const avail = box ? box.clientWidth : 0;
+    if (!avail) return;  // hidden slide: sized when it becomes active
+    const fitW = Math.min(1, avail / v.videoWidth);
+    const fitH = Math.max(0, window.innerHeight - 230) / v.videoHeight;
+    const minScale = CAPTION_PX / (parseInt(v.dataset.fs, 10) - 4);
+    const scale = Math.min(fitW, Math.max(minScale, Math.min(fitW, fitH)));
+    v.style.width = Math.round(v.videoWidth * scale) + 'px';
+  });
+}
+document.querySelectorAll('[data-autoplay] video[data-fs]').forEach(v => v.addEventListener('loadedmetadata', sizeOpeningClips));
+window.addEventListener('resize', sizeOpeningClips);
+sizeOpeningClips();
+
+// Lightbox
+const lightbox = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightbox-img');
+document.querySelectorAll('.zoomable').forEach(img => {
+  img.style.cursor = 'zoom-in';
+  img.addEventListener('click', () => {
+    lightboxImg.src = img.dataset.gif || img.src;
+    lightboxImg.className = img.classList.contains('pixel') ? 'pixel' : '';
+    lightbox.classList.add('active');
+  });
+});
+lightbox.addEventListener('click', () => {
+  lightbox.classList.remove('active');
+  lightboxImg.src = '';
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    lightbox.classList.remove('active');
+    lightboxImg.src = '';
+  }
+});
+</script>
+</body>
+</html>

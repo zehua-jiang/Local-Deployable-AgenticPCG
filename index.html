@@ -365,7 +365,7 @@
     </div>
 
     <p class="abstract">
-      Large language models offer a natural-language interface to procedural content generation (PCG), letting designers request and revise levels through tools. Compact LLMs need less memory and compute, making them promising candidates for local, in-game PCG, yet reliable tool use and level revision remain hard for these models. We address this execution problem through <strong style="color:var(--hero-strong);font-weight:600">harness design</strong>: the harness constrains action formats, recovers unfinished responses through bounded follow-up calls, and evaluates candidate edits before deciding whether to save them. Feedback helps the model correct mistakes, while acceptance rules and early stopping retain successful edits. In a paired Zelda comparison using Qwen3.8-27B, the full harness raises the perfect-match rate from <strong style="color:var(--hero-strong);font-weight:600">9.38% (6/64) to 100% (64/64)</strong>, and the improvement holds for two other models; component studies show which parts of the harness drive it. The harness also helps preserve gameplay requirements during structural revision and supports natural-language control of gameplay events.
+      Large language models offer a natural-language interface to procedural content generation (PCG), letting designers request and revise levels through tools. Compact LLMs need less memory and compute, making them promising candidates for local, in-game PCG, yet reliable tool use and level revision remain hard for these models. We address this execution problem through <strong style="color:var(--hero-strong);font-weight:600">harness design</strong>: the harness constrains action formats, recovers unfinished responses through bounded follow-up calls, and evaluates candidate edits before deciding whether to save them. Feedback helps the model correct mistakes, while acceptance rules and early stopping retain successful edits. In a paired Zelda comparison using Qwen3.8-27B, the full harness raises the perfect-match rate from <strong style="color:var(--hero-strong);font-weight:600">37.5% (24/64) to 100% (64/64)</strong>, and the improvement holds for two other models; component studies show which parts of the harness drive it. The harness also helps preserve gameplay requirements during structural revision and supports natural-language control of gameplay events.
     </p>
   </div>
 </header>
@@ -494,30 +494,30 @@
   <div class="container">
     <div class="reveal">
       <p class="section-label">Reliable Level Editing</p>
-      <h2>From 6/64 to 64/64 Perfect Matches</h2>
+      <h2>From 24/64 to 64/64 Perfect Matches</h2>
       <p>
-        Each model is held fixed and evaluated on the same 64 Zelda targets: two requested path lengths (player&rarr;key and key&rarr;door, each 10&ndash;40 steps) on a 16&times;16 map, with one player, key, door, three enemies, and one connected region. An open-loop baseline saves every executable edit with no feedback or history; the full harness adds recovery, measured feedback, history, target-prioritized acceptance, path guidance and early stopping. A run is a <strong>perfect match</strong> only if the final saved map is valid, hits both path lengths exactly, and the episode has no unrecovered parsing or tool errors.
+        Each model is held fixed and evaluated on the same 64 Zelda targets: two requested path lengths (player&rarr;key and key&rarr;door, each 10&ndash;40 steps) on a 16&times;16 map, with one player, key, door, three enemies, and one connected region. An open-loop baseline saves every executable edit with no feedback or history; the full harness adds recovery, measured feedback, history, target-prioritized acceptance, path guidance and early stopping. A run is a <strong>perfect match</strong> if its final saved map is valid and hits both path lengths exactly.
       </p>
     </div>
 
     <div class="stats reveal">
       <div class="stat">
         <p class="stat-model">Qwen3.8-27B</p>
-        <p class="stat-value"><span class="from">6</span><span class="arrow">&rarr;</span>64<span style="font-size:16px;color:#999;font-weight:500"> /64</span></p>
-        <p class="stat-note">9.38% &rarr; 100%. +58 targets, no regressions. 95% CI for the gain: 82.8&ndash;96.9 pp.</p>
-        <div class="bar"><span class="b1" style="width:100%"></span><span class="b0" style="width:9.38%"></span></div>
+        <p class="stat-value"><span class="from">24</span><span class="arrow">&rarr;</span>64<span style="font-size:16px;color:#999;font-weight:500"> /64</span></p>
+        <p class="stat-note">37.5% &rarr; 100%. +40 targets, no regressions. 95% CI for the gain: 50.0&ndash;73.4 pp.</p>
+        <div class="bar"><span class="b1" style="width:100%"></span><span class="b0" style="width:37.5%"></span></div>
       </div>
       <div class="stat">
         <p class="stat-model">Gemma 4 31B IT</p>
-        <p class="stat-value"><span class="from">1</span><span class="arrow">&rarr;</span>59<span style="font-size:16px;color:#999;font-weight:500"> /64</span></p>
-        <p class="stat-note">1.56% &rarr; 92.19%. +58 targets, no regressions. 95% CI: 82.8&ndash;96.9 pp.</p>
-        <div class="bar"><span class="b1" style="width:92.19%"></span><span class="b0" style="width:1.56%"></span></div>
+        <p class="stat-value"><span class="from">21</span><span class="arrow">&rarr;</span>59<span style="font-size:16px;color:#999;font-weight:500"> /64</span></p>
+        <p class="stat-note">32.81% &rarr; 92.19%. +40 targets, 2 regressions. 95% CI: 45.3&ndash;71.9 pp.</p>
+        <div class="bar"><span class="b1" style="width:92.19%"></span><span class="b0" style="width:32.81%"></span></div>
       </div>
       <div class="stat">
         <p class="stat-model">Qwen3.6-35B-A3B</p>
-        <p class="stat-value"><span class="from">2</span><span class="arrow">&rarr;</span>32<span style="font-size:16px;color:#999;font-weight:500"> /64</span></p>
-        <p class="stat-note">3.13% &rarr; 50%. +30 targets, no regressions. 95% CI: 34.4&ndash;59.4 pp.</p>
-        <div class="bar"><span class="b1" style="width:50%"></span><span class="b0" style="width:3.13%"></span></div>
+        <p class="stat-value"><span class="from">4</span><span class="arrow">&rarr;</span>32<span style="font-size:16px;color:#999;font-weight:500"> /64</span></p>
+        <p class="stat-note">6.25% &rarr; 50%. +28 targets, no regressions. 95% CI: 31.2&ndash;56.2 pp.</p>
+        <div class="bar"><span class="b1" style="width:50%"></span><span class="b0" style="width:6.25%"></span></div>
       </div>
     </div>
 
@@ -528,18 +528,18 @@
 
     <figure class="reveal">
       <img src="assets/figures/fig7_harness_package.png" alt="Full harness comparison and cumulative component additions" class="zoomable">
-      <figcaption>(a) Open-loop vs. full harness for three models. (b&ndash;c) Adding components cumulatively for Qwen3.8: perfect matches, valid runs, total LLM calls and mean target error e<sub>&infin;</sub>.</figcaption>
+      <figcaption>(a) Open-loop vs. full harness for three models. (b&ndash;c) Adding components cumulatively for Qwen3.8: perfect matches, valid maps, total LLM calls and mean target error e<sub>&infin;</sub>.</figcaption>
     </figure>
 
     <div class="reveal">
       <h3>What makes the difference?</h3>
       <p>
-        Action recovery makes more responses executable, but <strong>keeping successful edits gives the largest jump</strong>: adding acceptance and early stopping raises perfect matches from 13/64 to 56/64&mdash;before the model sees any evaluator feedback. Feedback, history and path guidance then fix the remaining errors and bring the result to 64/64. A separate 2&times;2 comparison shows that either selective acceptance (56/64) or early stopping (59/64) alone is enough to protect successful results, versus 13/64 with neither.
+        Action recovery makes more responses executable, but <strong>keeping successful edits gives the largest jump</strong>: adding acceptance and early stopping raises perfect matches from 20/64 to 56/64&mdash;before the model sees any evaluator feedback. Feedback, history and path guidance then fix the remaining errors and bring the result to 64/64. A separate 2&times;2 comparison shows that either selective acceptance (57/64) or early stopping (59/64) alone is enough to protect successful results, versus 20/64 with neither.
       </p>
     </div>
     <div class="reveal">
       <p>
-        The harness is also <strong>cheaper</strong>: on the 64 targets it cuts Qwen3.8&rsquo;s model calls from 256 to 120 and output tokens from 1.80M to 0.42M. On a larger reserved set of <strong>721 Zelda targets</strong>, the fixed system reaches 99.03% (714/721) perfect matches and 99.86% valid runs, recovering 658 of 659 truncated responses. In a second domain, BinaryDoor, it reaches 20/32 perfect matches where the open-loop baseline solves none.
+        The harness is also <strong>cheaper</strong>: on the 64 targets it cuts Qwen3.8&rsquo;s model calls from 256 to 120 and output tokens from 1.80M to 0.42M. On a larger reserved set of <strong>721 Zelda targets</strong>, the fixed system reaches 99.03% (714/721) perfect matches with all 721 final maps valid, recovering 658 of 659 truncated responses. In a second domain, BinaryDoor, it reaches 20/32 perfect matches where the open-loop baseline solves none.
       </p>
     </div>
   </div>
